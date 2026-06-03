@@ -1,0 +1,6 @@
+agno
+ollama
+openai
+pypdf
+lancedb
+gradio
