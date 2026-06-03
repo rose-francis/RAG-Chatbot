@@ -1,2 +1,2 @@
 # RAG-Chatbot
-A PDF based RAG chatbot.
+A RAG chatbot that answers queries on pdf documents.
