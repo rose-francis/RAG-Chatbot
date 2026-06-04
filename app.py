@@ -1,21 +1,34 @@
 import os
 import shutil
 import gradio as gr
+from dotenv import load_dotenv
 from agno.agent import Agent
-from agno.models.ollama import Ollama
+from agno.models.groq import Groq
 from agno.knowledge import Knowledge
 from agno.knowledge.reader.pdf_reader import PDFReader
 from agno.vectordb.lancedb.lance_db import LanceDb
 from agno.knowledge.embedder.ollama import OllamaEmbedder
 
+class NomicEmbedder(OllamaEmbedder):
+    def get_embedding(self, text: str) -> list:
+        return super().get_embedding(f"search_document: {text}")
+
+    def get_query_embedding(self, text: str) -> list:
+        return super().get_embedding(f"search_query: {text}")
+
+load_dotenv()
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DB_DIR = os.path.join(BASE_DIR, "tmp", "lancedb")
 
+if os.path.exists(DB_DIR):
+    shutil.rmtree(DB_DIR)
+
 vector_db = LanceDb(
     table_name="my_pdf_docs",
     uri=DB_DIR,
-    embedder=OllamaEmbedder(id="nomic-embed-text", dimensions=768),
+    embedder=NomicEmbedder(id="nomic-embed-text", dimensions=768),
 )
 
 knowledge_base = Knowledge(
@@ -23,10 +36,8 @@ knowledge_base = Knowledge(
     readers={".pdf": PDFReader()},
 )
 
-knowledge_base.insert(path=DATA_DIR, skip_if_exists=True)
-
 agent = Agent(
-    model=Ollama(id="llama3.2:1b"),
+    model=Groq(id="llama-3.1-8b-instant"),
     markdown=True,
     instructions="Answer ONLY using the context provided to you. If the answer is not in the context, say 'I don't know'. Do not use any outside knowledge.",
 )
@@ -34,22 +45,19 @@ agent = Agent(
 
 def respond(message, history):
     if not message.strip():
-        yield "", history or [], "No sources."
+        yield "", history or []
         return
 
     history = list(history or [])
     history.append({"role": "user", "content": message})
     history.append({"role": "assistant", "content": ""})
 
-    results = knowledge_base.search(query=message, max_results=10)
+    results = knowledge_base.search(query=message, max_results=5)
 
     if results:
         context = "\n\n".join(r.content for r in results)
-        names = list({getattr(r, "name", None) or getattr(r, "id", "Unknown") for r in results})
-        sources_md = "\n".join(f"- {n}" for n in names if n)
     else:
         context = "No relevant content found."
-        sources_md = "No sources found."
 
     prompt = f"""Using ONLY the context below, answer the question.
 If the answer is not in the context, say "I don't know".
@@ -66,10 +74,10 @@ Answer:"""
             buffer += chunk.content
             history[-1]["content"] += chunk.content
             if len(buffer) >= 15:
-                yield "", history, sources_md
+                yield "", history
                 buffer = ""
     if buffer:
-        yield "", history, sources_md
+        yield "", history
 
 
 def upload_pdfs(files):
@@ -103,9 +111,6 @@ with gr.Blocks(title="RAG Chatbot") as demo:
         with gr.Column(scale=3):
             chatbot = gr.Chatbot(height=460, show_label=False)
 
-            with gr.Accordion("Sources used for last answer", open=False):
-                sources_box = gr.Markdown("Ask a question to see sources.")
-
             with gr.Row():
                 msg_input = gr.Textbox(
                     placeholder="Ask a question about your documents...",
@@ -115,8 +120,8 @@ with gr.Blocks(title="RAG Chatbot") as demo:
                 )
                 send_btn = gr.Button("Send", variant="primary", scale=1)
 
-    msg_input.submit(respond, [msg_input, chatbot], [msg_input, chatbot, sources_box])
-    send_btn.click(respond, [msg_input, chatbot], [msg_input, chatbot, sources_box])
+    msg_input.submit(respond, [msg_input, chatbot], [msg_input, chatbot])
+    send_btn.click(respond, [msg_input, chatbot], [msg_input, chatbot])
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), footer_links=[])
