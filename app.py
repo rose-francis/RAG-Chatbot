@@ -104,12 +104,11 @@ with gr.Blocks(title="RAG Chatbot") as demo:
                 file_count="multiple",
                 label="Select PDF files",
             )
-            upload_btn = gr.Button("Index PDFs", variant="primary")
             upload_status = gr.Textbox(label="Status", interactive=False, lines=4)
-            upload_btn.click(fn=upload_pdfs, inputs=file_input, outputs=upload_status)
+            file_input.upload(fn=upload_pdfs, inputs=file_input, outputs=upload_status)
 
         with gr.Column(scale=3):
-            chatbot = gr.Chatbot(height=460, show_label=False)
+            chatbot = gr.Chatbot(height=460, show_label=False, buttons=["copy", "copy_all"])
 
             with gr.Row():
                 msg_input = gr.Textbox(
