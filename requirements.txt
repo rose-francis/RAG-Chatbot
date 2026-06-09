@@ -1,6 +1,7 @@
 agno
-ollama
 openai
 pypdf
 lancedb
-gradio
+fastapi
+uvicorn[standard]
+python-multipart

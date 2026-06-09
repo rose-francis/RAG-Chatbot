@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Chatbot</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h1>RAG Chatbot</h1>
+
+  <div class="container">
+
+    <!-- Left: Document Management (CRUD) -->
+    <section id="docs-panel">
+      <h2>Documents</h2>
+
+      <div class="upload-row">
+        <input type="file" id="file-input" multiple accept=".pdf">
+        <button onclick="uploadFiles()">Upload</button>
+      </div>
+      <p id="upload-status" class="status-msg"></p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Filename</th>
+            <th>Uploaded</th>
+            <th>Size</th>
+            <th>Pages</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="doc-list">
+          <tr><td colspan="6" class="empty-msg">No documents yet. Upload a PDF to get started.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Right: Chat -->
+    <section id="chat-panel">
+      <h2>Chat</h2>
+      <div id="chat-history"></div>
+      <div class="chat-input-row">
+        <input
+          type="text"
+          id="chat-input"
+          placeholder="Ask a question about your documents..."
+          onkeydown="if(event.key==='Enter') sendMessage()"
+        >
+        <button id="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
