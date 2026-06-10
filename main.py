@@ -43,7 +43,7 @@ knowledge_base = Knowledge(
 
 agent = Agent(
     model=Groq(id="llama-3.1-8b-instant"),
-    markdown=True,
+    markdown=False,
     instructions="Answer ONLY using the context provided. If the answer is not in the context, say 'I don't know'.",
 )
 
@@ -160,16 +160,14 @@ MIN_PAGE_COUNT = 3
 # CHAT — ask a question about the indexed documents
 @app.post("/chat")
 def chat(body: ChatMessage):
-    allowed_stems = set()
-    for d in read_documents():
-        if d["page_count"] >= MIN_PAGE_COUNT:
-            stem = Path(d["filename"]).stem
-            allowed_stems.add(stem)
-            allowed_stems.add(stem.replace(" ", "_"))
+    if not read_documents():
+        return {"reply": "No documents uploaded yet. Please upload a PDF first."}
 
     results = knowledge_base.search(query=body.message, max_results=5)
-    results = [r for r in results if getattr(r, "name", None) in allowed_stems]
-    context = "\n\n".join(r.content for r in results) if results else "No relevant content found."
+    if not results:
+        return {"reply": "I don't know."}
+
+    context = "\n\n".join(r.content for r in results)
 
     prompt = f"""Using ONLY the context below, answer the question.
 If the answer is not in the context, say "I don't know".

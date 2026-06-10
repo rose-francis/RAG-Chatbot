@@ -17,7 +17,7 @@ async function loadDocuments() {
       <td>${(d.file_size_bytes / 1024).toFixed(1)} KB</td>
       <td>${d.page_count}</td>
       <td style="display:flex;gap:4px;">
-        <button class="secondary" onclick="renameDoc(${d.id}, '${d.filename}')">Rename</button>
+        <button class="secondary" onclick="renameDoc(${d.id}, '${d.filename}', this)">Rename</button>
         <button class="danger"    onclick="deleteDoc(${d.id}, '${d.filename}')">Delete</button>
       </td>
     </tr>
@@ -51,11 +51,14 @@ async function uploadFiles() {
 
 
 // ── UPDATE: rename a document ──────────────────────────────────────────────────
-async function renameDoc(id, currentName) {
+async function renameDoc(id, currentName, btn) {
   const newName = prompt("Enter a new filename:", currentName);
   if (!newName || newName.trim() === currentName) return;
 
-  await fetch(`/documents/${id}`, {          // PUT /documents/{id}  →  UPDATE
+  btn.textContent = "Renaming…";
+  btn.disabled = true;
+
+  await fetch(`/documents/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename: newName.trim() }),
